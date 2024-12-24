@@ -18,7 +18,9 @@ package org.pojemnik.gateway;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.component.kafka.KafkaConstants;
 import org.apache.camel.model.rest.RestBindingMode;
+import org.pojemnik.ticket.TicketRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
@@ -72,6 +74,18 @@ public class Gateway extends RouteBuilder
                 .param().name("body").type(body).description("The user to update").endParam()
                 .responseMessage().code(204).message("User successfully updated").endResponseMessage()
                 .to("direct:update-user");
+
+        rest("/ticket").description("Ticket booking")
+                .consumes("application/json")
+                .produces("application/json")
+                        .post().description("Book a ticket").type(TicketRequest.class)
+                        .to("direct:BookTicket");
+
+        from("direct:BookTicket").routeId("BookTicket")
+                .log("brokerTopic fired")
+                .marshal().json()
+                .setHeader(KafkaConstants.KEY, constant("Camel"))
+                .to("kafka:BookTicket?brokers=localhost:9092");
 
         from("direct:update-user")
                 .to("bean:userService?method=updateUser")
