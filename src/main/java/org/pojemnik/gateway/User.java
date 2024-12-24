@@ -14,17 +14,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.camel.example.springboot;
+package org.pojemnik.gateway;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
-@SpringBootApplication
-public class Application
-{
+/**
+ * User entity
+ *
+ */
+public class User {
 
-    public static void main(String[] args)
-    {
-        SpringApplication.run(Application.class, args);
+    private Integer id;
+
+    private String name;
+
+    public User() {
     }
+
+    public User(Integer id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this);
+    }
+
 }
