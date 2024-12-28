@@ -25,19 +25,4 @@ public class EventRepository
     {
         return events.get(id);
     }
-
-    public boolean bookTicket(int id) throws IncorrectEventException, NoTicketsAvailableException
-    {
-        Event event = events.get(id);
-        if (event == null)
-        {
-            throw new IncorrectEventException("Event with id " + id + " does not exist");
-        }
-        if (event.getAvailableTickets() == 0)
-        {
-            throw new NoTicketsAvailableException("No tickets available for event with id " + id);
-        }
-        event.setAvailableTickets(event.getAvailableTickets() - 1);
-        return true;
-    }
 }

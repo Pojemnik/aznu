@@ -20,6 +20,7 @@ import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.kafka.KafkaConstants;
 import org.apache.camel.model.rest.RestBindingMode;
+import org.pojemnik.ticket.TicketBookingService;
 import org.pojemnik.ticket.TicketRequest;
 import org.pojemnik.ticket.TicketResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,12 +34,14 @@ import static org.apache.camel.model.rest.RestParamType.path;
 @Component
 public class Gateway extends RouteBuilder
 {
-
     @Autowired
     private Environment env;
 
     @Value("${camel.servlet.mapping.context-path}")
     private String contextPath;
+
+    @Autowired
+    private TicketBookingService ticketBookingService;
 
     @Override
     public void configure() throws Exception
@@ -75,6 +78,14 @@ public class Gateway extends RouteBuilder
                 .process(
                         exchange -> {
                             TicketRequest request = exchange.getMessage().getBody(TicketRequest.class);
+                            try {
+                                ticketBookingService.bookTickets(request.eventId(), request.ticketsCount());
+                            }
+                            catch (Exception e) {
+                                TicketResponse response = new TicketResponse(request.eventId(), e.getMessage());
+                                exchange.getMessage().setBody(response);
+                                return;
+                            }
                             TicketResponse response = new TicketResponse(request.eventId(), "success");
                             exchange.getMessage().setBody(response);
                         }
