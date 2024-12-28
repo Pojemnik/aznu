@@ -1,11 +1,16 @@
 package org.pojemnik.ticket;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
+
 @Data
-public class TicketRequest
+@AllArgsConstructor
+public class TicketResponse
 {
     @JsonProperty
     private String event;
+    @JsonProperty
+    private String status;
 }

@@ -21,6 +21,7 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.kafka.KafkaConstants;
 import org.apache.camel.model.rest.RestBindingMode;
 import org.pojemnik.ticket.TicketRequest;
+import org.pojemnik.ticket.TicketResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
@@ -55,42 +56,35 @@ public class Gateway extends RouteBuilder
                 .apiProperty("api.title", "User API")
                 .apiProperty("api.version", "1.0.0");
 
-        rest("/users").description("User REST service")
-                .consumes("application/json")
-                .produces("application/json")
-
-                .get().description("Find all users").outType(User[].class)
-                .responseMessage().code(200).message("All users successfully returned").endResponseMessage()
-                .to("bean:userService?method=findUsers")
-
-                .get("/{id}").description("Find user by ID")
-                .outType(User.class)
-                .param().name("id").type(path).description("The ID of the user").dataType("integer").endParam()
-                .responseMessage().code(200).message("User successfully returned").endResponseMessage()
-                .to("bean:userService?method=findUser(${header.id})")
-
-                .put("/{id}").description("Update a user").type(User.class)
-                .param().name("id").type(path).description("The ID of the user to update").dataType("integer").endParam()
-                .param().name("body").type(body).description("The user to update").endParam()
-                .responseMessage().code(204).message("User successfully updated").endResponseMessage()
-                .to("direct:update-user");
-
         rest("/ticket").description("Ticket booking")
                 .consumes("application/json")
                 .produces("application/json")
-                        .post().description("Book a ticket").type(TicketRequest.class)
+                .post().description("Book a ticket").type(TicketRequest.class)
+                .param().name("body").type(body).description("The ticket to book").endParam()
+                .responseMessage().code(200).message("Ticket successfully booked").endResponseMessage()
                         .to("direct:BookTicket");
 
         from("direct:BookTicket").routeId("BookTicket")
                 .log("brokerTopic fired")
                 .marshal().json()
-                .setHeader(KafkaConstants.KEY, constant("Camel"))
                 .to("kafka:BookTicket?brokers=localhost:9092");
 
-        from("direct:update-user")
-                .to("bean:userService?method=updateUser")
-                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(204))
-                .setBody(constant(""));
+        from("kafka:BookTicket?brokers=localhost:9092").routeId("BookTicketKafka")
+                .log("kafka fired")
+                .unmarshal().json(TicketRequest.class)
+                .process(
+                        exchange -> {
+                            TicketRequest request = exchange.getMessage().getBody(TicketRequest.class);
+                            TicketResponse response = new TicketResponse(request.getEvent(), "success");
+                            exchange.getMessage().setBody(response);
+                        }
+                )
+                .marshal().json()
+                .to("kafka:BookTicketResponse?brokers=localhost:9092");
+
+        from("kafka:BookTicketResponse?brokers=localhost:9092").routeId("BookTicketResponseKafka")
+                .log("notification sent")
+                .to("direct:notification");
     }
 
 }
