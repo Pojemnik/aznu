@@ -59,7 +59,7 @@ public class Gateway extends RouteBuilder
         rest("/ticket").description("Ticket booking")
                 .consumes("application/json")
                 .produces("application/json")
-                .post().description("Book a ticket").type(TicketRequest.class)
+                .post("/book").description("Book a ticket").type(TicketRequest.class)
                 .param().name("body").type(body).description("The ticket to book").endParam()
                 .responseMessage().code(200).message("Ticket successfully booked").endResponseMessage()
                         .to("direct:BookTicket");
@@ -75,7 +75,7 @@ public class Gateway extends RouteBuilder
                 .process(
                         exchange -> {
                             TicketRequest request = exchange.getMessage().getBody(TicketRequest.class);
-                            TicketResponse response = new TicketResponse(request.getEvent(), "success");
+                            TicketResponse response = new TicketResponse(request.eventId(), "success");
                             exchange.getMessage().setBody(response);
                         }
                 )
@@ -85,6 +85,9 @@ public class Gateway extends RouteBuilder
         from("kafka:BookTicketResponse?brokers=localhost:9092").routeId("BookTicketResponseKafka")
                 .log("notification sent")
                 .to("direct:notification");
+
+        from("direct:notification").routeId("notification")
+                .to("stream:out");
     }
 
 }

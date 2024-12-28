@@ -1,11 +1,14 @@
 package org.pojemnik.ticket;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Data;
 
-@Data
-public class TicketRequest
+public record TicketRequest(@JsonProperty int eventId, @JsonProperty int ticketsCount)
 {
-    @JsonProperty
-    private String event;
+    public TicketRequest
+    {
+        if (ticketsCount <= 0)
+        {
+            throw new IllegalArgumentException("Tickets count must be a positive integer");
+        }
+    }
 }

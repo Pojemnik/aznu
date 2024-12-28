@@ -5,12 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 
-@Data
-@AllArgsConstructor
-public class TicketResponse
+public record TicketResponse(@JsonProperty int eventId, @JsonProperty String status)
 {
-    @JsonProperty
-    private String event;
-    @JsonProperty
-    private String status;
 }
