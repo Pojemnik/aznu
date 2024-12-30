@@ -1,12 +1,21 @@
 package org.pojemnik.payment;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-public record PaymentRequest(@JsonProperty String creditCardNumber,
-                             @JsonProperty String creditCardOwner,
-                             @JsonProperty String creditCardExpirationDate,
-                             @JsonProperty String creditCardCvv,
-                             @JsonProperty double cost)
+@XmlAccessorType(XmlAccessType.FIELD)
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PaymentRequest
 {
+    private String creditCardNumber;
+    private String creditCardOwner;
+    private String creditCardExpirationDate;
+    private String creditCardCvv;
+    private double cost;
 
 }
