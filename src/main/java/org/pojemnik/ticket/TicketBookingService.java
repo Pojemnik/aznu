@@ -1,20 +1,21 @@
 package org.pojemnik.ticket;
 
 
-import org.pojemnik.event.Event;
-import org.pojemnik.event.EventRepository;
-import org.pojemnik.event.IncorrectEventException;
-import org.pojemnik.event.NoTicketsAvailableException;
+import org.pojemnik.event.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class TicketBookingService
 {
     @Autowired
     private EventRepository eventRepository;
+
+    private final Map<Integer, Integer> processedTickets = new HashMap<>();
 
     public void bookTickets(int id, int count) throws IncorrectEventException, NoTicketsAvailableException
     {
@@ -32,5 +33,26 @@ public class TicketBookingService
             throw new NoTicketsAvailableException("Event with id %d has already passed".formatted(id));
         }
         event.setAvailableTickets(event.getAvailableTickets() - count);
+        processedTickets.put(id, processedTickets.getOrDefault(id, 0) + count);
+    }
+
+    public void confirmTickets(int id) throws IncorrectEventException
+    {
+        if (!processedTickets.containsKey(id))
+        {
+            throw new EventConfirmationException("No tickets were processed for event with id %d".formatted(id));
+        }
+        processedTickets.remove(id);
+    }
+
+    public void cancelTickets(int id) throws IncorrectEventException
+    {
+        if (!processedTickets.containsKey(id))
+        {
+            throw new EventConfirmationException("No tickets were processed for event with id %d".formatted(id));
+        }
+        Event event = eventRepository.getEvent(id);
+        event.setAvailableTickets(event.getAvailableTickets() + processedTickets.get(id));
+        processedTickets.remove(id);
     }
 }
