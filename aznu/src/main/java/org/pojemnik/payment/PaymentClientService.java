@@ -17,9 +17,9 @@ public class PaymentClientService
         org.pojemnik.payment.PaymentServiceService ss = new org.pojemnik.payment.PaymentServiceService(wsdlURL, SERVICE_NAME);
         org.pojemnik.payment.PaymentService port = ss.getPaymentServicePort();
 
-        System.out.println("Invoking processPayment...");
+        System.out.println("Invoking processPayment");
         org.pojemnik.payment.PaymentResponse result = port.processPayment(request);
-        System.out.println("processPayment.result=" + result);
+        System.out.println("processPayment.result = " + result.getResult());
         return result;
     }
 }

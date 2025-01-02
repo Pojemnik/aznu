@@ -2,6 +2,10 @@ package org.pojemnik.ticket;
 
 
 import org.pojemnik.event.*;
+import org.pojemnik.event.exceptions.EventConfirmationException;
+import org.pojemnik.event.exceptions.EventException;
+import org.pojemnik.event.exceptions.IncorrectEventException;
+import org.pojemnik.event.exceptions.NoTicketsAvailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +21,7 @@ public class TicketBookingService
 
     private final Map<Integer, Integer> processedTickets = new HashMap<>();
 
-    public void bookTickets(int id, int count) throws IncorrectEventException, NoTicketsAvailableException
+    public void bookTickets(int id, int count) throws EventException
     {
         Event event = eventRepository.getEvent(id);
         if (event == null)
