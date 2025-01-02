@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="http://payment.pojemnik.org/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:ns1="http://schemas.xmlsoap.org/soap/http" name="PaymentServiceService" targetNamespace="http://payment.pojemnik.org/">
+  <wsdl:types>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://payment.pojemnik.org/" elementFormDefault="unqualified" targetNamespace="http://payment.pojemnik.org/" version="1.0">
+
+  <xs:element name="processPayment" type="tns:processPayment"/>
+
+  <xs:element name="processPaymentResponse" type="tns:processPaymentResponse"/>
+
+  <xs:complexType name="processPayment">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="arg0" type="tns:paymentRequest"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="paymentRequest">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="creditCardNumber" type="xs:string"/>
+      <xs:element minOccurs="0" name="creditCardOwner" type="xs:string"/>
+      <xs:element minOccurs="0" name="creditCardExpirationDate" type="xs:string"/>
+      <xs:element minOccurs="0" name="creditCardCvv" type="xs:string"/>
+      <xs:element name="cost" type="xs:double"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="processPaymentResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:paymentResponse"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType final="extension restriction" name="paymentResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="result" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>
+  </wsdl:types>
+  <wsdl:message name="processPayment">
+    <wsdl:part element="tns:processPayment" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="processPaymentResponse">
+    <wsdl:part element="tns:processPaymentResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="PaymentService">
+    <wsdl:operation name="processPayment">
+      <wsdl:input message="tns:processPayment" name="processPayment">
+    </wsdl:input>
+      <wsdl:output message="tns:processPaymentResponse" name="processPaymentResponse">
+    </wsdl:output>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="PaymentServiceServiceSoapBinding" type="tns:PaymentService">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="processPayment">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="processPayment">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="processPaymentResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="PaymentServiceService">
+    <wsdl:port binding="tns:PaymentServiceServiceSoapBinding" name="PaymentServicePort">
+      <soap:address location="http://localhost:8081/soap-api/service/payment"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

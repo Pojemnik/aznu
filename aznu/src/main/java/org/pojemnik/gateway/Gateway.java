@@ -20,6 +20,9 @@ import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.kafka.KafkaConstants;
 import org.apache.camel.model.rest.RestBindingMode;
+import org.pojemnik.payment.PaymentClientService;
+import org.pojemnik.payment.PaymentRequest;
+import org.pojemnik.payment.PaymentResponse;
 import org.pojemnik.ticket.TicketBookingService;
 import org.pojemnik.ticket.TicketRequest;
 import org.pojemnik.ticket.TicketResponse;
@@ -42,6 +45,8 @@ public class Gateway extends RouteBuilder
 
     @Autowired
     private TicketBookingService ticketBookingService;
+    @Autowired
+    private PaymentClientService paymentClientService;
 
     @Override
     public void configure() throws Exception
@@ -56,7 +61,7 @@ public class Gateway extends RouteBuilder
                 .contextPath(contextPath.substring(0, contextPath.length() - 2))
                 // turn on openapi api-doc
                 .apiContextPath("/api-doc")
-                .apiProperty("api.title", "User API")
+                .apiProperty("api.title", "Ticket booking API")
                 .apiProperty("api.version", "1.0.0");
 
         rest("/ticket").description("Ticket booking")
@@ -65,7 +70,7 @@ public class Gateway extends RouteBuilder
                 .post("/book").description("Book a ticket").type(TicketRequest.class)
                 .param().name("body").type(body).description("The ticket to book").endParam()
                 .responseMessage().code(200).message("Ticket successfully booked").endResponseMessage()
-                        .to("direct:BookTicket");
+                .to("direct:BookTicket");
 
         from("direct:BookTicket").routeId("BookTicket")
                 .log("brokerTopic fired")
@@ -73,15 +78,16 @@ public class Gateway extends RouteBuilder
                 .to("kafka:BookTicket?brokers=localhost:9092");
 
         from("kafka:BookTicket?brokers=localhost:9092").routeId("BookTicketKafka")
-                .log("kafka fired")
+                .log("kafka ticket fired")
                 .unmarshal().json(TicketRequest.class)
                 .process(
                         exchange -> {
                             TicketRequest request = exchange.getMessage().getBody(TicketRequest.class);
-                            try {
+                            try
+                            {
                                 ticketBookingService.bookTickets(request.eventId(), request.ticketsCount());
-                            }
-                            catch (Exception e) {
+                            } catch (Exception e)
+                            {
                                 TicketResponse response = new TicketResponse(request.eventId(), e.getMessage());
                                 exchange.getMessage().setBody(response);
                                 return;
@@ -91,6 +97,33 @@ public class Gateway extends RouteBuilder
                         }
                 )
                 .marshal().json()
+                .setHeader("serviceType", constant("ticket"))
+                .to("kafka:BookTicketResponse?brokers=localhost:9092");
+
+        from("kafka:BookTicket?brokers=localhost:9092").routeId("PaymentKafka")
+                .log("kafka payment fired")
+                .unmarshal().json(TicketRequest.class)
+                .process(
+                        exchange -> {
+                            TicketRequest ticketRequest = exchange.getMessage().getBody(TicketRequest.class);
+                            PaymentRequest paymentRequest = getPaymentRequest(ticketRequest);
+                            try
+                            {
+                                paymentClientService.doPayment(paymentRequest);
+                            } catch (Exception e)
+                            {
+                                PaymentResponse response = new PaymentResponse();
+                                response.setResult("Error");
+                                exchange.getMessage().setBody(response);
+                                return;
+                            }
+                            PaymentResponse response = new PaymentResponse();
+                            response.setResult("Success");
+                            exchange.getMessage().setBody(response);
+                        }
+                )
+                .marshal().json()
+                .setHeader("serviceType", constant("payment"))
                 .to("kafka:BookTicketResponse?brokers=localhost:9092");
 
         from("kafka:BookTicketResponse?brokers=localhost:9092").routeId("BookTicketResponseKafka")
@@ -99,6 +132,17 @@ public class Gateway extends RouteBuilder
 
         from("direct:notification").routeId("notification")
                 .to("stream:out");
+    }
+
+    private static PaymentRequest getPaymentRequest(TicketRequest ticketRequest)
+    {
+        PaymentRequest paymentRequest = new PaymentRequest();
+        paymentRequest.setCost(100);//TODO: get from ticket info
+        paymentRequest.setCreditCardNumber(ticketRequest.creditCardNumber());
+        paymentRequest.setCreditCardCvv(ticketRequest.creditCardCvv());
+        paymentRequest.setCreditCardOwner(ticketRequest.creditCardOwner());
+        paymentRequest.setCreditCardExpirationDate(ticketRequest.creditCardExpirationDate());
+        return paymentRequest;
     }
 
 }
