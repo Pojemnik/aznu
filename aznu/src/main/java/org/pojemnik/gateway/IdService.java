@@ -4,7 +4,7 @@ import java.util.UUID;
 
 public class IdService
 {
-    public static String getId()
+    public static String newId()
     {
         return UUID.randomUUID().toString();
     }

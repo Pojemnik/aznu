@@ -21,8 +21,11 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.rest.RestBindingMode;
 import org.pojemnik.event.exceptions.EventException;
 import org.pojemnik.payment.PaymentClientService;
+import org.pojemnik.payment.PaymentException;
 import org.pojemnik.payment.PaymentRequest;
 import org.pojemnik.payment.PaymentResponse;
+import org.pojemnik.state.IncorrectStateException;
+import org.pojemnik.state.StateMachine;
 import org.pojemnik.ticket.TicketBookingService;
 import org.pojemnik.ticket.TicketRequest;
 import org.pojemnik.ticket.TicketResponse;
@@ -30,6 +33,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.apache.camel.model.rest.RestParamType.body;
 
@@ -47,23 +53,31 @@ public class Gateway extends RouteBuilder
     @Autowired
     private PaymentClientService paymentClientService;
 
+    private enum ServiceType
+    {
+        Ticket,
+        Payment,
+        Gateway
+    }
+
+    private final Map<ServiceType, Map<String, StateMachine>> state = new HashMap<>();
+
     @Override
     public void configure() throws Exception
     {
+        initState();
+
         configureRest();
         configureExceptionHandlers();
         configureTicket();
         configurePayment();
 
         from("direct:BookTicket").routeId("BookTicket")
-                .log("brokerTopic fired")
+                .log("brokerTopic fired").process(exchange -> {
+                    exchange.getMessage().setHeader("Id", IdService.newId());
+                })
                 .marshal().json()
                 .to("kafka:BookTicket?brokers=localhost:9092");
-
-        from("kafka:BookTicketError?brokers=localhost:9092").routeId("BookTicketErrorKafka")
-                //TODO: update states, cleanup
-                .log("error sent")
-                .to("direct:notification");
 
         from("kafka:BookTicketResponse?brokers=localhost:9092").routeId("BookTicketResponseKafka")
                 //TODO: update states
@@ -72,6 +86,14 @@ public class Gateway extends RouteBuilder
 
         from("direct:notification").routeId("notification")
                 .to("stream:out");
+    }
+
+    private void initState()
+    {
+        for (ServiceType type : ServiceType.values())
+        {
+            state.put(type, new HashMap<>());
+        }
     }
 
     private void configureRest()
@@ -107,11 +129,11 @@ public class Gateway extends RouteBuilder
                 )
                 .marshal().json()
                 .to("stream:out")
-                .setHeader("serviceType", constant("ticket"))
+                .setHeader("serviceType", constant(ServiceType.Ticket))
                 .to("kafka:BookTicketError?brokers=localhost:9092")
                 .handled(true);
 
-        onException(EventException.class)
+        onException(PaymentException.class)
                 .process((exchange) -> {
                             Exception cause = exchange.getProperty(Exchange.EXCEPTION_CAUGHT, Exception.class);
                             ErrorInfo info = new ErrorInfo(cause.toString(), cause.getMessage());
@@ -120,7 +142,7 @@ public class Gateway extends RouteBuilder
                 )
                 .marshal().json()
                 .to("stream:out")
-                .setHeader("serviceType", constant("payment"))
+                .setHeader("serviceType", constant(ServiceType.Payment))
                 .to("kafka:BookTicketError?brokers=localhost:9092")
                 .handled(true);
     }
@@ -132,15 +154,74 @@ public class Gateway extends RouteBuilder
                 .unmarshal().json(TicketRequest.class)
                 .process(
                         exchange -> {
+                            String id = exchange.getMessage().getHeader("Id", String.class);
+                            synchronized (state.get(ServiceType.Ticket))
+                            {
+                                StateMachine machine = state.get(ServiceType.Ticket).computeIfAbsent(id, _ -> new StateMachine());
+                                try
+                                {
+                                    machine.start();
+                                }
+                                catch (IncorrectStateException e)
+                                {
+                                    //No compensation, nothing happened yet
+                                    exchange.getMessage().setHeader("Compensate", false);
+                                    return;
+                                }
+                            }
                             TicketRequest request = exchange.getMessage().getBody(TicketRequest.class);
-                            ticketBookingService.bookTickets(request.eventId(), request.ticketsCount());
+                            ticketBookingService.bookTickets(id, request.eventId(), request.ticketsCount());
                             TicketResponse response = new TicketResponse(request.eventId(), "success");
                             exchange.getMessage().setBody(response);
+                            synchronized (state.get(ServiceType.Ticket))
+                            {
+                                StateMachine machine = state.get(ServiceType.Ticket).get(id);
+                                try
+                                {
+                                    machine.start();
+                                }
+                                catch (IncorrectStateException e)
+                                {
+                                    exchange.getMessage().setHeader("Compensate", true);
+                                    return;
+                                }
+                            }
+                            exchange.getMessage().setHeader("Compensate", false);
                         }
                 )
                 .marshal().json()
-                .setHeader("serviceType", constant("ticket"))
-                .to("kafka:BookTicketResponse?brokers=localhost:9092");
+                .setHeader("serviceType", constant(ServiceType.Ticket))
+                .choice()
+                .when(header("Compensate").isEqualTo(true))
+                .to("direct:TicketCompensation")
+                .otherwise()
+                .to("kafka:BookTicketResponse?brokers=localhost:9092")
+                .endChoice();
+
+        from("kafka:BookTicketError?brokers=localhost:9092").routeId("BookTicketErrorKafka")
+                .log("error received by ticket handler")
+                .unmarshal().json(ErrorInfo.class)
+                .choice()
+                .when(header("serviceType").isNotEqualTo(ServiceType.Ticket))
+                .to("direct:TicketCompensation")
+                .endChoice();
+
+        from("direct:TicketCompensation")
+                .log("Ticket compensation")
+                .process(exchange -> {
+                    String id = exchange.getMessage().getHeader("Id", String.class);
+                    StateMachine.State lastState;
+                    synchronized (state.get(ServiceType.Ticket))
+                    {
+                        StateMachine machine = state.get(ServiceType.Ticket).computeIfAbsent(id, _ -> new StateMachine());
+                        lastState = machine.error();
+                    }
+                    if (lastState == StateMachine.State.Success)
+                    {
+                        ticketBookingService.cancelTickets(id);
+                    }
+                })
+                .to("stream:out");
     }
 
     private void configurePayment()
@@ -150,16 +231,20 @@ public class Gateway extends RouteBuilder
                 .unmarshal().json(TicketRequest.class)
                 .process(
                         exchange -> {
+                            String id = exchange.getMessage().getHeader("Id", String.class);
+                            StateMachine machine = state.get(ServiceType.Payment).getOrDefault(id, new StateMachine());
+                            machine.start();
                             TicketRequest ticketRequest = exchange.getMessage().getBody(TicketRequest.class);
                             PaymentRequest paymentRequest = createPaymentRequest(ticketRequest);
                             paymentClientService.doPayment(paymentRequest);
                             PaymentResponse response = new PaymentResponse();
                             response.setResult("Success");
                             exchange.getMessage().setBody(response);
+                            machine.finish();
                         }
                 )
                 .marshal().json()
-                .setHeader("serviceType", constant("payment"))
+                .setHeader("serviceType", constant(ServiceType.Payment))
                 .to("kafka:BookTicketResponse?brokers=localhost:9092");
     }
 

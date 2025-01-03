@@ -1,11 +1,16 @@
 package org.pojemnik.ticket;
 
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.Getter;
 import org.pojemnik.event.*;
 import org.pojemnik.event.exceptions.EventConfirmationException;
 import org.pojemnik.event.exceptions.EventException;
 import org.pojemnik.event.exceptions.IncorrectEventException;
 import org.pojemnik.event.exceptions.NoTicketsAvailableException;
+import org.pojemnik.state.IncorrectStateException;
+import org.pojemnik.state.StateMachine;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,44 +24,60 @@ public class TicketBookingService
     @Autowired
     private EventRepository eventRepository;
 
-    private final Map<Integer, Integer> processedTickets = new HashMap<>();
-
-    public void bookTickets(int id, int count) throws EventException
+    @Data
+    @AllArgsConstructor
+    private class TicketInfo
     {
-        Event event = eventRepository.getEvent(id);
+        private int eventId;
+        private int ticketsCount;
+    }
+
+    private final Map<String, TicketInfo> processedTickets = new HashMap<>();
+
+    public void bookTickets(String transactionId, int eventId, int count) throws EventException
+    {
+        Event event = eventRepository.getEvent(eventId);
         if (event == null)
         {
-            throw new IncorrectEventException("Event with id %d does not exist".formatted(id));
-        }
-        if (event.getAvailableTickets() < count)
-        {
-            throw new NoTicketsAvailableException("Not enough tickets available for event with id %d".formatted(id));
+            throw new IncorrectEventException("Event with id %d does not exist".formatted(eventId));
         }
         if (event.getTime().isBefore(LocalDateTime.now()))
         {
-            throw new NoTicketsAvailableException("Event with id %d has already passed".formatted(id));
+            throw new NoTicketsAvailableException("Event with id %d has already passed".formatted(eventId));
         }
-        event.setAvailableTickets(event.getAvailableTickets() - count);
-        processedTickets.put(id, processedTickets.getOrDefault(id, 0) + count);
+        synchronized (event)
+        {
+            if (event.getAvailableTickets() < count)
+            {
+                throw new NoTicketsAvailableException("Not enough tickets available for event with id %d".formatted(eventId));
+            }
+            event.setAvailableTickets(event.getAvailableTickets() - count);
+            TicketInfo info = new TicketInfo(eventId, count);
+            processedTickets.put(transactionId, info);
+        }
     }
 
-    public void confirmTickets(int id) throws IncorrectEventException
+    public void confirmTickets(String transactionId) throws IncorrectEventException
     {
-        if (!processedTickets.containsKey(id))
+        if (!processedTickets.containsKey(transactionId))
         {
-            throw new EventConfirmationException("No tickets were processed for event with id %d".formatted(id));
+            throw new EventConfirmationException("No tickets were processed in transaction %s".formatted(transactionId));
         }
-        processedTickets.remove(id);
+        processedTickets.remove(transactionId);
     }
 
-    public void cancelTickets(int id) throws IncorrectEventException
+    public void cancelTickets(String transactionId) throws IncorrectEventException
     {
-        if (!processedTickets.containsKey(id))
+        if (!processedTickets.containsKey(transactionId))
         {
-            throw new EventConfirmationException("No tickets were processed for event with id %d".formatted(id));
+            throw new EventConfirmationException("No tickets were processed in transaction %s".formatted(transactionId));
         }
-        Event event = eventRepository.getEvent(id);
-        event.setAvailableTickets(event.getAvailableTickets() + processedTickets.get(id));
-        processedTickets.remove(id);
+        TicketInfo info = processedTickets.get(transactionId);
+        Event event = eventRepository.getEvent(info.eventId);
+        synchronized (event)
+        {
+            event.setAvailableTickets(event.getAvailableTickets() + info.ticketsCount);
+            processedTickets.remove(transactionId);
+        }
     }
 }

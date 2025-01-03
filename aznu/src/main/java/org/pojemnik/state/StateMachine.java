@@ -2,41 +2,41 @@ package org.pojemnik.state;
 
 import lombok.Getter;
 
-import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
+import org.pojemnik.state.IncorrectStateException;
 
 public class StateMachine
 {
-    public enum State { None, Created, Processing, Success, Error }
+    public enum State { Created, Processing, Success, Error }
 
     @Getter
-    private State state = State.None;
+    private State state = State.Created;
 
-    public void create() throws IncorrectStateException
+    public State start() throws IncorrectStateException
     {
-        validateState(State.None);
-        state = State.Created;
+        return changeState(State.Processing, List.of(State.Created));
     }
 
-    public void start() throws IncorrectStateException
+    public State error() throws IncorrectStateException
     {
-        validateState(State.Created);
-        state = State.Processing;
+        return changeState(State.Error, List.of(State.Created, State.Processing, State.Success));
     }
 
-    public void error() throws IncorrectStateException
+    public State finish() throws IncorrectStateException
     {
-        validateState(State.None, State.Created, State.Processing);
-        state = State.Error;
+        return changeState(State.Success, List.of(State.Processing));
     }
 
-    public void finish() throws IncorrectStateException
+    private synchronized State changeState(State target, List<State> expectedStates) throws IncorrectStateException
     {
-        validateState(State.Processing);
-        state = State.Success;
+        validateState(expectedStates);
+        State last = state;
+        state = target;
+        return last;
     }
 
-    private void validateState(State... expectedStates) throws IncorrectStateException
+    private void validateState(List<State> expectedStates) throws IncorrectStateException
     {
         for (State expected : expectedStates)
         {
@@ -45,6 +45,7 @@ public class StateMachine
                 return;
             }
         }
-        throw new IncorrectStateException("Incorrect state %s. Expected one of %s".formatted(String.valueOf(state), Arrays.stream(expectedStates).map(String::valueOf).collect(Collectors.joining(","))));
+        throw new IncorrectStateException("Incorrect state %s. Expected one of %s".formatted(String.valueOf(state),
+                expectedStates.stream().map(String::valueOf).collect(Collectors.joining(","))));
     }
 }
