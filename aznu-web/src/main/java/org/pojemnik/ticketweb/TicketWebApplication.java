@@ -1,13 +1,14 @@
-package org.pojemnik.aznu_web;
+package org.pojemnik.ticketweb;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class AznuWebApplication {
+public class TicketWebApplication
+{
 
 	public static void main(String[] args) {
-		SpringApplication.run(AznuWebApplication.class, args);
+		SpringApplication.run(TicketWebApplication.class, args);
 	}
 
 }

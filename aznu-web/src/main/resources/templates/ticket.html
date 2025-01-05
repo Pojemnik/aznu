@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="https://www.thymeleaf.org">
+    <head>
+        <meta charset="UTF-8">
+        <title>Book tickets for an event</title>
+    </head>
+    <body>
+        <h1>Ticket booking</h1>
+        <form action="#" th:action="@{/ticket}" th:object="${ticketRequest}" method="post">
+            <p>eventId: <input type="text" th:field="*{eventId}"/></p>
+            <p>ticketsCount: <input type="text" th:field="*{ticketsCount}"/></p>
+            <p>creditCardNumber: <input type="text" th:field="*{creditCardNumber}"/></p>
+            <p>creditCardOwner: <input type="text" th:field="*{creditCardOwner}"/></p>
+            <p>creditCardExpirationDate: <input type="text" th:field="*{creditCardExpirationDate}"/></p>
+            <p>creditCardCvv: <input type="text" th:field="*{creditCardCvv}"/></p>
+
+            <p><input type="submit" value="Submit"/> <input type="reset" value="Reset"/></p>
+        </form>
+    </body>
+</html>

@@ -1,10 +1,11 @@
-package org.pojemnik.aznu_web;
+package org.pojemnik.ticketweb;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class AznuWebApplicationTests {
+class TicketWebApplicationTests
+{
 
 	@Test
 	void contextLoads() {

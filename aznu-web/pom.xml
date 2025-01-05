@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>org.pojemnik</groupId>
-	<artifactId>aznu-web</artifactId>
+	<artifactId>ticket-web</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>aznu-web</name>
+	<name>ticket-web</name>
 	<description>Web client for ticket booking application</description>
 	<url/>
 	<licenses>
@@ -43,6 +43,13 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>1.18.36</version>
+			<scope>provided</scope>
 		</dependency>
 	</dependencies>
 
