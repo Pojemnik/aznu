@@ -35,9 +35,12 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static org.apache.camel.model.rest.RestParamType.body;
+import static org.apache.camel.support.builder.PredicateBuilder.and;
 
 @Component
 public class Gateway extends RouteBuilder
@@ -52,15 +55,17 @@ public class Gateway extends RouteBuilder
     private TicketBookingService ticketBookingService;
     @Autowired
     private PaymentClientService paymentClientService;
+    @Autowired
+    private GatewayFlowService gatewayFlowService;
 
     private enum ServiceType
     {
         Ticket,
-        Payment,
-        Gateway
+        Payment
     }
 
     private final Map<ServiceType, Map<String, StateMachine>> state = new HashMap<>();
+    private final Set<String> confirmedTickets = new HashSet<>();
 
     @Override
     public void configure() throws Exception
@@ -76,17 +81,51 @@ public class Gateway extends RouteBuilder
         from("direct:BookTicket").routeId("BookTicket")
                 .log("brokerTopic fired").process(exchange -> {
                     exchange.getMessage().setHeader("Id", IdService.newId());
+                    exchange.getMessage().setHeader("operation", "bookTicket");
                 })
                 .marshal().json()
                 .to("kafka:BookTicket?brokers=localhost:9092");
 
         from("kafka:BookTicketResponse?brokers=localhost:9092").routeId("BookTicketResponseKafka")
-                //TODO: update states
-                .log("notification sent")
-                .to("direct:notification");
+                .choice()
+                .when(and(header("Confirmed").isEqualTo(true), header("serviceType").isEqualTo("ticket")))
+                .to("direct:Cleanup")
+                .to("direct:Confirmed")
+                .otherwise()
+                .process(exchange -> {
+                    String id = exchange.getMessage().getHeader("Id", String.class);
+                    String serviceType = exchange.getMessage().getHeader("serviceType", String.class);
+                    log.info("Processing response. Id: %s, serviceType: %s".formatted(id, serviceType));
+                    boolean finished = false;
+                    if (serviceType.equals("ticket"))
+                    {
+                        finished = gatewayFlowService.onTicketReserved(id);
+                    }
+                    else if (serviceType.equals("payment"))
+                    {
+                        finished = gatewayFlowService.onPaymentProcessed(id);
+                    }
+                    if (finished)
+                    {
+                        exchange.getMessage().setHeader("Finished", true);
+                    }
+                })
+                .choice()
+                .when(header("Finished").isEqualTo(true))
+                .to("kafka:BookTicketConfirm?brokers=localhost:9092")
+                .endChoice()
+                .endChoice();
 
-        from("direct:notification").routeId("notification")
-                .to("stream:out");
+        from("direct:Cleanup").routeId("Cleanup")
+                .log("Cleaning up")
+                .to("kafka:BookTicketCleanup?brokers=localhost:9092");
+
+        from("direct:Confirmed").routeId("Confirmed")
+                .process(exchange -> {
+                    String id = exchange.getMessage().getHeader("Id", String.class);
+                    log.info("Ticket confirmed. Id: %s".formatted(id));
+                    confirmedTickets.add(id);
+                });
     }
 
     private void initState()
@@ -115,12 +154,28 @@ public class Gateway extends RouteBuilder
                 .produces("application/json")
                 .post("/book").description("Book a ticket").type(TicketRequest.class)
                 .param().name("body").type(body).description("The ticket to book").endParam()
-                .responseMessage().code(200).message("Ticket successfully booked").endResponseMessage()
+                .responseMessage().code(200).message("Ticket booking started").endResponseMessage()
                 .to("direct:BookTicket");
+
+/*        rest("/ticket").description("Ticket booking result")
+                .consumes("application/json")
+                .produces("application/json")
+                .get("/result/{id}").description("Get ticket booking result").outType(TicketResponse.class)
+                .responseMessage().code(200).message("Ticket booking result").endResponseMessage();*/
     }
 
     private void configureTicket()
     {
+        from("kafka:BookTicketConfirm?brokers=localhost:9092").routeId("BookTicketConfirmKafka")
+                .process(exchange -> {
+                    String id = exchange.getMessage().getHeader("Id", String.class);
+                    log.info("Confirming tickets for id: %s".formatted(id));
+                    ticketBookingService.confirmTickets(id);
+                    exchange.getMessage().setHeader("Confirmed", true);
+                })
+                .setHeader("serviceType", constant("ticket"))
+                .to("kafka:BookTicketResponse?brokers=localhost:9092");
+
         from("kafka:BookTicket?brokers=localhost:9092").routeId("BookTicketKafka")
                 .log("kafka ticket fired")
                 .unmarshal().json(TicketRequest.class)
@@ -143,8 +198,6 @@ public class Gateway extends RouteBuilder
                             }
                             TicketRequest request = exchange.getMessage().getBody(TicketRequest.class);
                             ticketBookingService.bookTickets(id, request.eventId(), request.ticketsCount());
-                            TicketResponse response = new TicketResponse(request.eventId(), "success");
-                            exchange.getMessage().setBody(response);
                             synchronized (state.get(ServiceType.Ticket))
                             {
                                 StateMachine machine = state.get(ServiceType.Ticket).get(id);
@@ -200,6 +253,15 @@ public class Gateway extends RouteBuilder
                     }
                 })
                 .to("stream:out");
+
+        from("kafka:BookTicketCleanup?brokers=localhost:9092").routeId("BookTicketCleanupKafka")
+                .process(exchange -> {
+                    String id = exchange.getMessage().getHeader("Id", String.class);
+                    synchronized (state.get(ServiceType.Ticket))
+                    {
+                        state.get(ServiceType.Ticket).remove(id);
+                    }
+                });
     }
 
     private void ticketExceptionHandler()
@@ -300,6 +362,15 @@ public class Gateway extends RouteBuilder
                 .log("Direct to PaymentCompensation from PaymentError")
                 .to("direct:PaymentCompensation")
                 .endChoice();
+
+        from("kafka:BookTicketCleanup?brokers=localhost:9092").routeId("PaymentCleanupKafka")
+                .process(exchange -> {
+                    String id = exchange.getMessage().getHeader("Id", String.class);
+                    synchronized (state.get(ServiceType.Payment))
+                    {
+                        state.get(ServiceType.Payment).remove(id);
+                    }
+                });
     }
 
     private void paymentExceptionHandler()
@@ -327,7 +398,8 @@ public class Gateway extends RouteBuilder
         paymentRequest.setCreditCardCvv(ticketRequest.creditCardCvv());
         paymentRequest.setCreditCardOwner(ticketRequest.creditCardOwner());
         paymentRequest.setCreditCardExpirationDate(ticketRequest.creditCardExpirationDate());
-        paymentRequest.setTransactionId(transactionId);;
+        paymentRequest.setTransactionId(transactionId);
+        ;
         return paymentRequest;
     }
 

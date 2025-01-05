@@ -11,11 +11,4 @@ public record TicketRequest(
         @JsonProperty String creditCardCvv
 )
 {
-    public TicketRequest
-    {
-        if (ticketsCount <= 0)
-        {
-            throw new IllegalArgumentException("Tickets count must be a positive integer");
-        }
-    }
 }
