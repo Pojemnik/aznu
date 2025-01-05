@@ -79,12 +79,11 @@ public class Gateway extends RouteBuilder
         configurePayment();
 
         from("direct:BookTicket").routeId("BookTicket")
-                .log("brokerTopic fired").process(exchange -> {
-                    exchange.getMessage().setHeader("Id", IdService.newId());
-                    exchange.getMessage().setHeader("operation", "bookTicket");
-                })
+                .log("brokerTopic fired")
+                .process(exchange -> exchange.getMessage().setHeader("Id", IdService.newId()))
                 .marshal().json()
-                .to("kafka:BookTicket?brokers=localhost:9092");
+                .to("kafka:BookTicket?brokers=localhost:9092")
+                .setBody(header("Id"));
 
         from("kafka:BookTicketResponse?brokers=localhost:9092").routeId("BookTicketResponseKafka")
                 .choice()
@@ -154,7 +153,6 @@ public class Gateway extends RouteBuilder
                 .produces("application/json")
                 .post("/book").description("Book a ticket").type(TicketRequest.class)
                 .param().name("body").type(body).description("The ticket to book").endParam()
-                .responseMessage().code(200).message("Ticket booking started").endResponseMessage()
                 .to("direct:BookTicket");
 
 /*        rest("/ticket").description("Ticket booking result")
