@@ -1,4 +1,4 @@
-package org.pojemnik.ticket;
+package org.pojemnik.gateway;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

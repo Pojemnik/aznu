@@ -27,17 +27,13 @@ import org.pojemnik.payment.PaymentResponse;
 import org.pojemnik.state.IncorrectStateException;
 import org.pojemnik.state.StateMachine;
 import org.pojemnik.ticket.TicketBookingService;
-import org.pojemnik.ticket.TicketRequest;
-import org.pojemnik.ticket.TicketResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import static org.apache.camel.model.rest.RestParamType.body;
 import static org.apache.camel.support.builder.PredicateBuilder.and;
@@ -65,7 +61,7 @@ public class Gateway extends RouteBuilder
     }
 
     private final Map<ServiceType, Map<String, StateMachine>> state = new HashMap<>();
-    private final Set<String> confirmedTickets = new HashSet<>();
+    private final Map<String, TicketStatus> ticketRequestStatus = new HashMap<>();
 
     @Override
     public void configure() throws Exception
@@ -77,10 +73,18 @@ public class Gateway extends RouteBuilder
         configureRest();
         configureTicket();
         configurePayment();
+        configureGateway();
+    }
 
+    private void configureGateway()
+    {
         from("direct:BookTicket").routeId("BookTicket")
                 .log("brokerTopic fired")
-                .process(exchange -> exchange.getMessage().setHeader("Id", IdService.newId()))
+                .process(exchange -> {
+                    String id = IdService.newId();
+                    exchange.getMessage().setHeader("Id", id);
+                    ticketRequestStatus.put(id, new TicketStatus(TicketStatus.Status.Processing, null));
+                })
                 .marshal().json()
                 .to("kafka:BookTicket?brokers=localhost:9092")
                 .setBody(header("Id"));
@@ -123,7 +127,31 @@ public class Gateway extends RouteBuilder
                 .process(exchange -> {
                     String id = exchange.getMessage().getHeader("Id", String.class);
                     log.info("Ticket confirmed. Id: %s".formatted(id));
-                    confirmedTickets.add(id);
+                    ticketRequestStatus.put(id, new TicketStatus(TicketStatus.Status.Ok, ErrorInfo.noError()));
+                });
+
+        from("direct:TicketResult").routeId("TicketResult")
+                .log("Ticket result request for id: ${header.id}")
+                .process(exchange -> {
+                    String id = exchange.getMessage().getHeader("id", String.class);
+                    if (ticketRequestStatus.containsKey(id))
+                    {
+                        TicketStatus ticketStatus = ticketRequestStatus.get(id);
+                        exchange.getMessage().setBody(new TicketResponse(ticketStatus.status().toString(), ticketStatus.errorInfo().toString()));
+                    }
+                    else
+                    {
+                        exchange.getMessage().setBody(new TicketResponse(TicketStatus.Status.Error.toString(), "No such id"));
+                    }
+                });
+
+        from("kafka:BookTicketError?brokers=localhost:9092").routeId("GatewayErrorHandler")
+                .unmarshal().json(ErrorInfo.class)
+                .process(exchange -> {
+                    String id = exchange.getMessage().getHeader("Id", String.class);
+                    ErrorInfo errorInfo = exchange.getMessage().getBody(ErrorInfo.class);
+                    log.info("Error received. Id: %s".formatted(id));
+                    ticketRequestStatus.put(id, new TicketStatus(TicketStatus.Status.Error, errorInfo));
                 });
     }
 
@@ -155,11 +183,11 @@ public class Gateway extends RouteBuilder
                 .param().name("body").type(body).description("The ticket to book").endParam()
                 .to("direct:BookTicket");
 
-/*        rest("/ticket").description("Ticket booking result")
-                .consumes("application/json")
+        rest("/ticket").description("Ticket booking result")
                 .produces("application/json")
                 .get("/result/{id}").description("Get ticket booking result").outType(TicketResponse.class)
-                .responseMessage().code(200).message("Ticket booking result").endResponseMessage();*/
+                .responseMessage().code(200).message("Ticket booking result").endResponseMessage()
+                .to("direct:TicketResult");
     }
 
     private void configureTicket()

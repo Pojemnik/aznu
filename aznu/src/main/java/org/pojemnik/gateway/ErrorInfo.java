@@ -11,4 +11,9 @@ public class ErrorInfo
 {
     private String error;
     private String message;
+
+    public static ErrorInfo noError()
+    {
+        return new ErrorInfo("No error", "");
+    }
 }
