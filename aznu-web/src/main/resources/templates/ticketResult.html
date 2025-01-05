@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="https://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Ticket booking result</title>
+    <style>
+    .loader {
+      border: 16px solid #f3f3f3; /* Light grey */
+      border-top: 16px solid #3498db; /* Blue */
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 2s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    </style>
+</head>
+<body>
+<h1>Ticket booking result</h1>
+<p id="result"></p>
+
+<script th:inline="javascript">
+    var id = /*[[${id}]]*/;
+    id = id.substring(1, id.length - 1);
+    var spinner = document.createElement('div');
+    spinner.classList.add('loader');
+    document.body.appendChild(spinner);
+
+    function checkStatus() {
+        fetch(`http://localhost:8080/api/ticket/result/${id}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'Processing') {
+                    setTimeout(checkStatus, 1000);
+                } else {
+                    spinner.remove();
+                    if (data.status === 'Error') {
+                        document.querySelector('p').innerText = `Error: ${data.errorMessage}`;
+                        return;
+                    }
+                    document.querySelector('p').innerText = data.status;
+                }
+            })
+    }
+
+    checkStatus();
+</script>
+</body>
+</html>

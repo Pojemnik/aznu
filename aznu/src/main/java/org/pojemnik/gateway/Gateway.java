@@ -83,7 +83,7 @@ public class Gateway extends RouteBuilder
                 .process(exchange -> {
                     String id = IdService.newId();
                     exchange.getMessage().setHeader("Id", id);
-                    ticketRequestStatus.put(id, new TicketStatus(TicketStatus.Status.Processing, null));
+                    ticketRequestStatus.put(id, new TicketStatus(TicketStatus.Status.Processing, ErrorInfo.noError()));
                 })
                 .marshal().json()
                 .to("kafka:BookTicket?brokers=localhost:9092")
@@ -137,7 +137,7 @@ public class Gateway extends RouteBuilder
                     if (ticketRequestStatus.containsKey(id))
                     {
                         TicketStatus ticketStatus = ticketRequestStatus.get(id);
-                        exchange.getMessage().setBody(new TicketResponse(ticketStatus.status().toString(), ticketStatus.errorInfo().toString()));
+                        exchange.getMessage().setBody(new TicketResponse(ticketStatus.status().toString(), ticketStatus.errorInfo().getMessage()));
                     }
                     else
                     {

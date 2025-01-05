@@ -5,7 +5,7 @@
         <title>Book tickets for an event</title>
     </head>
     <body>
-        <h1>Ticket booking</h1>
+        <h1>Ticket booking form</h1>
         <form action="#" th:action="@{/ticket}" th:object="${ticketRequest}" method="post">
             <p>eventId: <input type="text" th:field="*{eventId}"/></p>
             <p>ticketsCount: <input type="text" th:field="*{ticketsCount}"/></p>
