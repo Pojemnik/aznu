@@ -24,6 +24,8 @@ import jakarta.xml.bind.annotation.XmlRegistry;
 @XmlRegistry
 public class ObjectFactory {
 
+    private final static QName _CancelPayment_QNAME = new QName("http://payment.pojemnik.org/", "cancelPayment");
+    private final static QName _CancelPaymentResponse_QNAME = new QName("http://payment.pojemnik.org/", "cancelPaymentResponse");
     private final static QName _ProcessPayment_QNAME = new QName("http://payment.pojemnik.org/", "processPayment");
     private final static QName _ProcessPaymentResponse_QNAME = new QName("http://payment.pojemnik.org/", "processPaymentResponse");
 
@@ -32,6 +34,22 @@ public class ObjectFactory {
      * 
      */
     public ObjectFactory() {
+    }
+
+    /**
+     * Create an instance of {@link CancelPayment }
+     * 
+     */
+    public CancelPayment createCancelPayment() {
+        return new CancelPayment();
+    }
+
+    /**
+     * Create an instance of {@link CancelPaymentResponse }
+     * 
+     */
+    public CancelPaymentResponse createCancelPaymentResponse() {
+        return new CancelPaymentResponse();
     }
 
     /**
@@ -64,6 +82,32 @@ public class ObjectFactory {
      */
     public PaymentResponse createPaymentResponse() {
         return new PaymentResponse();
+    }
+
+    /**
+     * Create an instance of {@link JAXBElement }{@code <}{@link CancelPayment }{@code >}
+     * 
+     * @param value
+     *     Java instance representing xml element's value.
+     * @return
+     *     the new instance of {@link JAXBElement }{@code <}{@link CancelPayment }{@code >}
+     */
+    @XmlElementDecl(namespace = "http://payment.pojemnik.org/", name = "cancelPayment")
+    public JAXBElement<CancelPayment> createCancelPayment(CancelPayment value) {
+        return new JAXBElement<CancelPayment>(_CancelPayment_QNAME, CancelPayment.class, null, value);
+    }
+
+    /**
+     * Create an instance of {@link JAXBElement }{@code <}{@link CancelPaymentResponse }{@code >}
+     * 
+     * @param value
+     *     Java instance representing xml element's value.
+     * @return
+     *     the new instance of {@link JAXBElement }{@code <}{@link CancelPaymentResponse }{@code >}
+     */
+    @XmlElementDecl(namespace = "http://payment.pojemnik.org/", name = "cancelPaymentResponse")
+    public JAXBElement<CancelPaymentResponse> createCancelPaymentResponse(CancelPaymentResponse value) {
+        return new JAXBElement<CancelPaymentResponse>(_CancelPaymentResponse_QNAME, CancelPaymentResponse.class, null, value);
     }
 
     /**

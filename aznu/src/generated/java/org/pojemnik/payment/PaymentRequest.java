@@ -21,6 +21,7 @@ import jakarta.xml.bind.annotation.XmlType;
  *         &lt;element name="creditCardExpirationDate" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/&gt;
  *         &lt;element name="creditCardCvv" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/&gt;
  *         &lt;element name="cost" type="{http://www.w3.org/2001/XMLSchema}double"/&gt;
+ *         &lt;element name="transactionId" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/&gt;
  *       &lt;/sequence&gt;
  *     &lt;/restriction&gt;
  *   &lt;/complexContent&gt;
@@ -35,7 +36,8 @@ import jakarta.xml.bind.annotation.XmlType;
     "creditCardOwner",
     "creditCardExpirationDate",
     "creditCardCvv",
-    "cost"
+    "cost",
+    "transactionId"
 })
 public class PaymentRequest {
 
@@ -44,6 +46,7 @@ public class PaymentRequest {
     protected String creditCardExpirationDate;
     protected String creditCardCvv;
     protected double cost;
+    protected String transactionId;
 
     /**
      * Gets the value of the creditCardNumber property.
@@ -155,6 +158,30 @@ public class PaymentRequest {
      */
     public void setCost(double value) {
         this.cost = value;
+    }
+
+    /**
+     * Gets the value of the transactionId property.
+     * 
+     * @return
+     *     possible object is
+     *     {@link String }
+     *     
+     */
+    public String getTransactionId() {
+        return transactionId;
+    }
+
+    /**
+     * Sets the value of the transactionId property.
+     * 
+     * @param value
+     *     allowed object is
+     *     {@link String }
+     *     
+     */
+    public void setTransactionId(String value) {
+        this.transactionId = value;
     }
 
 }

@@ -4,11 +4,10 @@ import lombok.Getter;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import org.pojemnik.state.IncorrectStateException;
 
 public class StateMachine
 {
-    public enum State { Created, Processing, Success, Error }
+    public enum State { Created, Processing, Success, Error, CompensatedOrCancelled}
 
     @Getter
     private State state = State.Created;
@@ -20,12 +19,17 @@ public class StateMachine
 
     public State error() throws IncorrectStateException
     {
-        return changeState(State.Error, List.of(State.Created, State.Processing, State.Success));
+        return changeState(State.Error, List.of(State.Created, State.Processing, State.Success, State.Error));
     }
 
     public State finish() throws IncorrectStateException
     {
         return changeState(State.Success, List.of(State.Processing));
+    }
+
+    public State compensateOrCancel() throws IncorrectStateException
+    {
+        return changeState(State.CompensatedOrCancelled, List.of(State.Error));
     }
 
     private synchronized State changeState(State target, List<State> expectedStates) throws IncorrectStateException

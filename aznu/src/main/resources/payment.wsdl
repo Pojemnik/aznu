@@ -1,7 +1,10 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<wsdl:definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="http://payment.pojemnik.org/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:ns1="http://schemas.xmlsoap.org/soap/http" name="PaymentServiceService" targetNamespace="http://payment.pojemnik.org/">
+<?xml version='1.0' encoding='UTF-8'?><wsdl:definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="http://payment.pojemnik.org/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:ns1="http://schemas.xmlsoap.org/soap/http" name="PaymentServiceService" targetNamespace="http://payment.pojemnik.org/">
   <wsdl:types>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://payment.pojemnik.org/" elementFormDefault="unqualified" targetNamespace="http://payment.pojemnik.org/" version="1.0">
+
+  <xs:element name="cancelPayment" type="tns:cancelPayment"/>
+
+  <xs:element name="cancelPaymentResponse" type="tns:cancelPaymentResponse"/>
 
   <xs:element name="processPayment" type="tns:processPayment"/>
 
@@ -20,6 +23,7 @@
       <xs:element minOccurs="0" name="creditCardExpirationDate" type="xs:string"/>
       <xs:element minOccurs="0" name="creditCardCvv" type="xs:string"/>
       <xs:element name="cost" type="xs:double"/>
+      <xs:element minOccurs="0" name="transactionId" type="xs:string"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -35,14 +39,34 @@
     </xs:sequence>
   </xs:complexType>
 
+  <xs:complexType name="cancelPayment">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="arg0" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="cancelPaymentResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
 </xs:schema>
   </wsdl:types>
   <wsdl:message name="processPayment">
     <wsdl:part element="tns:processPayment" name="parameters">
     </wsdl:part>
   </wsdl:message>
+  <wsdl:message name="cancelPaymentResponse">
+    <wsdl:part element="tns:cancelPaymentResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
   <wsdl:message name="processPaymentResponse">
     <wsdl:part element="tns:processPaymentResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="cancelPayment">
+    <wsdl:part element="tns:cancelPayment" name="parameters">
     </wsdl:part>
   </wsdl:message>
   <wsdl:portType name="PaymentService">
@@ -50,6 +74,12 @@
       <wsdl:input message="tns:processPayment" name="processPayment">
     </wsdl:input>
       <wsdl:output message="tns:processPaymentResponse" name="processPaymentResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="cancelPayment">
+      <wsdl:input message="tns:cancelPayment" name="cancelPayment">
+    </wsdl:input>
+      <wsdl:output message="tns:cancelPaymentResponse" name="cancelPaymentResponse">
     </wsdl:output>
     </wsdl:operation>
   </wsdl:portType>
@@ -61,6 +91,15 @@
         <soap:body use="literal"/>
       </wsdl:input>
       <wsdl:output name="processPaymentResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="cancelPayment">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="cancelPayment">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="cancelPaymentResponse">
         <soap:body use="literal"/>
       </wsdl:output>
     </wsdl:operation>
