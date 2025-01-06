@@ -15,7 +15,7 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-  all:
+  gateway:
     image: aznu/ticket
     ports:
       - "8080:8080"
@@ -23,4 +23,27 @@ services:
       - kafka
     environment:
       KAFKA_ADDRESS: kafka:9092
-      TICKET_SERVICE_TYPE: All
+      TICKET_SERVICE_TYPE: Gateway
+  ticket:
+    image: aznu/ticket
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_ADDRESS: kafka:9092
+      TICKET_SERVICE_TYPE: Ticket
+  payment:
+    image: aznu/ticket
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_ADDRESS: kafka:9092
+      TICKET_SERVICE_TYPE: Payment
+#  all:
+#    image: aznu/ticket
+#    ports:
+#      - "8080:8080"
+#    depends_on:
+#      - kafka
+#    environment:
+#      KAFKA_ADDRESS: kafka:9092
+#      TICKET_SERVICE_TYPE: All
