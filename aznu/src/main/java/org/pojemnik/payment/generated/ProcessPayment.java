@@ -1,5 +1,5 @@
 
-package org.pojemnik.payment;
+package org.pojemnik.payment.generated;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
@@ -7,16 +7,16 @@ import jakarta.xml.bind.annotation.XmlType;
 
 
 /**
- * <p>Java class for cancelPayment complex type.
+ * <p>Java class for processPayment complex type.
  * 
  * <p>The following schema fragment specifies the expected content contained within this class.
  * 
  * <pre>
- * &lt;complexType name="cancelPayment"&gt;
+ * &lt;complexType name="processPayment"&gt;
  *   &lt;complexContent&gt;
  *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType"&gt;
  *       &lt;sequence&gt;
- *         &lt;element name="arg0" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/&gt;
+ *         &lt;element name="arg0" type="{http://payment.pojemnik.org/}paymentRequest" minOccurs="0"/&gt;
  *       &lt;/sequence&gt;
  *     &lt;/restriction&gt;
  *   &lt;/complexContent&gt;
@@ -26,22 +26,22 @@ import jakarta.xml.bind.annotation.XmlType;
  * 
  */
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(name = "cancelPayment", propOrder = {
+@XmlType(name = "processPayment", propOrder = {
     "arg0"
 })
-public class CancelPayment {
+public class ProcessPayment {
 
-    protected String arg0;
+    protected PaymentRequest arg0;
 
     /**
      * Gets the value of the arg0 property.
      * 
      * @return
      *     possible object is
-     *     {@link String }
+     *     {@link PaymentRequest }
      *     
      */
-    public String getArg0() {
+    public PaymentRequest getArg0() {
         return arg0;
     }
 
@@ -50,10 +50,10 @@ public class CancelPayment {
      * 
      * @param value
      *     allowed object is
-     *     {@link String }
+     *     {@link PaymentRequest }
      *     
      */
-    public void setArg0(String value) {
+    public void setArg0(PaymentRequest value) {
         this.arg0 = value;
     }
 

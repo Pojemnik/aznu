@@ -1,4 +1,4 @@
-package org.pojemnik.payment;
+package org.pojemnik.payment.generated;
 
 import jakarta.jws.WebMethod;
 import jakarta.jws.WebParam;
@@ -19,18 +19,18 @@ import jakarta.xml.ws.ResponseWrapper;
 public interface PaymentService {
 
     @WebMethod
-    @RequestWrapper(localName = "processPayment", targetNamespace = "http://payment.pojemnik.org/", className = "org.pojemnik.payment.ProcessPayment")
-    @ResponseWrapper(localName = "processPaymentResponse", targetNamespace = "http://payment.pojemnik.org/", className = "org.pojemnik.payment.ProcessPaymentResponse")
+    @RequestWrapper(localName = "processPayment", targetNamespace = "http://payment.pojemnik.org/", className = "org.pojemnik.payment.generated.ProcessPayment")
+    @ResponseWrapper(localName = "processPaymentResponse", targetNamespace = "http://payment.pojemnik.org/", className = "org.pojemnik.payment.generated.ProcessPaymentResponse")
     @WebResult(name = "return", targetNamespace = "")
-    public org.pojemnik.payment.PaymentResponse processPayment(
+    public PaymentResponse processPayment(
 
         @WebParam(name = "arg0", targetNamespace = "")
-        org.pojemnik.payment.PaymentRequest arg0
+        PaymentRequest arg0
     );
 
     @WebMethod
-    @RequestWrapper(localName = "cancelPayment", targetNamespace = "http://payment.pojemnik.org/", className = "org.pojemnik.payment.CancelPayment")
-    @ResponseWrapper(localName = "cancelPaymentResponse", targetNamespace = "http://payment.pojemnik.org/", className = "org.pojemnik.payment.CancelPaymentResponse")
+    @RequestWrapper(localName = "cancelPayment", targetNamespace = "http://payment.pojemnik.org/", className = "org.pojemnik.payment.generated.CancelPayment")
+    @ResponseWrapper(localName = "cancelPaymentResponse", targetNamespace = "http://payment.pojemnik.org/", className = "org.pojemnik.payment.generated.CancelPaymentResponse")
     @WebResult(name = "return", targetNamespace = "")
     public java.lang.String cancelPayment(
 

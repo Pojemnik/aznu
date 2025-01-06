@@ -1,6 +1,10 @@
 package org.pojemnik.payment;
 
 import jakarta.annotation.PostConstruct;
+import org.pojemnik.payment.generated.PaymentRequest;
+import org.pojemnik.payment.generated.PaymentResponse;
+import org.pojemnik.payment.generated.PaymentService;
+import org.pojemnik.payment.generated.PaymentServiceService;
 import org.springframework.stereotype.Service;
 
 import javax.xml.namespace.QName;
@@ -10,21 +14,29 @@ import java.net.URL;
 public class PaymentClientService
 {
     private static final QName SERVICE_NAME = new QName("http://payment.pojemnik.org/", "PaymentServiceService");
-    private org.pojemnik.payment.PaymentService port;
+    private PaymentService port;
 
     @PostConstruct
     private void init()
     {
-        URL wsdlURL = org.pojemnik.payment.PaymentServiceService.WSDL_LOCATION;
+        URL wsdlURL = PaymentServiceService.WSDL_LOCATION;
 
-        org.pojemnik.payment.PaymentServiceService ss = new org.pojemnik.payment.PaymentServiceService(wsdlURL, SERVICE_NAME);
+        PaymentServiceService ss = new PaymentServiceService(wsdlURL, SERVICE_NAME);
         port = ss.getPaymentServicePort();
     }
 
-    public org.pojemnik.payment.PaymentResponse doPayment(org.pojemnik.payment.PaymentRequest request)
+    public PaymentResponse doPayment(PaymentRequest request)
     {
         System.out.println("Invoking processPayment");
-        org.pojemnik.payment.PaymentResponse result = port.processPayment(request);
+        PaymentResponse result;
+        try
+        {
+            result = port.processPayment(request);
+        }
+        catch (Exception e)
+        {
+            throw new PaymentException("Payment system error: %s".formatted(e.getMessage()));
+        }
         System.out.println("processPayment.result = " + result.getResult());
         if (!result.getResult().equals("ok"))
         {

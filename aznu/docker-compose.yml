@@ -15,3 +15,12 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+  all:
+    image: aznu/ticket
+    ports:
+      - "8080:8080"
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_ADDRESS: kafka:9092
+      TICKET_SERVICE_TYPE: All

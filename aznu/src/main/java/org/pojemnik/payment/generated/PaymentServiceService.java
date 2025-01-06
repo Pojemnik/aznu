@@ -1,4 +1,4 @@
-package org.pojemnik.payment;
+package org.pojemnik.payment.generated;
 
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -16,7 +16,7 @@ import jakarta.xml.ws.Service;
  *
  */
 @WebServiceClient(name = "PaymentServiceService",
-                  wsdlLocation = "file:/C:/Studia/semestr_9/AZNU/aznu/src/main/resources/payment.wsdl",
+                  wsdlLocation = "/payment.wsdl",
                   targetNamespace = "http://payment.pojemnik.org/")
 public class PaymentServiceService extends Service {
 
@@ -25,15 +25,7 @@ public class PaymentServiceService extends Service {
     public static final QName SERVICE = new QName("http://payment.pojemnik.org/", "PaymentServiceService");
     public static final QName PaymentServicePort = new QName("http://payment.pojemnik.org/", "PaymentServicePort");
     static {
-        URL url = null;
-        try {
-            url = URI.create("file:/C:/Studia/semestr_9/AZNU/aznu/src/main/resources/payment.wsdl").toURL();
-        } catch (MalformedURLException e) {
-            java.util.logging.Logger.getLogger(PaymentServiceService.class.getName())
-                .log(java.util.logging.Level.INFO,
-                     "Can not initialize the default wsdl from {0}", "file:/C:/Studia/semestr_9/AZNU/aznu/src/main/resources/payment.wsdl");
-        }
-        WSDL_LOCATION = url;
+        WSDL_LOCATION = PaymentServiceService.class.getResource("/payment.wsdl");
     }
 
     public PaymentServiceService(URL wsdlLocation) {

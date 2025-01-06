@@ -1,5 +1,5 @@
 
-package org.pojemnik.payment;
+package org.pojemnik.payment.generated;
 
 import javax.xml.namespace.QName;
 import jakarta.xml.bind.JAXBElement;

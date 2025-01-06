@@ -3,14 +3,11 @@ package org.pojemnik.ticket;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Getter;
 import org.pojemnik.event.*;
 import org.pojemnik.event.exceptions.EventConfirmationException;
 import org.pojemnik.event.exceptions.EventException;
 import org.pojemnik.event.exceptions.IncorrectEventException;
 import org.pojemnik.event.exceptions.NoTicketsAvailableException;
-import org.pojemnik.state.IncorrectStateException;
-import org.pojemnik.state.StateMachine;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
