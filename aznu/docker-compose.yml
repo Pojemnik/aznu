@@ -38,6 +38,12 @@ services:
     environment:
       KAFKA_ADDRESS: kafka:9092
       TICKET_SERVICE_TYPE: Payment
+  web:
+    image: aznu/web
+    ports:
+      - "8082:8082"
+    depends_on:
+      - gateway
 #  all:
 #    image: aznu/ticket
 #    ports:
