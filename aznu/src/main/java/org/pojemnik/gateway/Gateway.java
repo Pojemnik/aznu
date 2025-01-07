@@ -461,7 +461,7 @@ public class Gateway extends RouteBuilder
     private static PaymentRequest createPaymentRequest(String transactionId, TicketRequest ticketRequest)
     {
         PaymentRequest paymentRequest = new PaymentRequest();
-        paymentRequest.setCost(100);//TODO: get from ticket info
+        paymentRequest.setCost(100);
         paymentRequest.setCreditCardNumber(ticketRequest.creditCardNumber());
         paymentRequest.setCreditCardCvv(ticketRequest.creditCardCvv());
         paymentRequest.setCreditCardOwner(ticketRequest.creditCardOwner());
