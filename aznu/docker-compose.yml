@@ -35,6 +35,7 @@ services:
     image: aznu/ticket
     depends_on:
       - kafka
+      - payment-server
     environment:
       KAFKA_ADDRESS: kafka:9092
       TICKET_SERVICE_TYPE: Payment
@@ -44,6 +45,8 @@ services:
       - "8082:8082"
     depends_on:
       - gateway
+  payment-server:
+    image: aznu/payment-server
 #  all:
 #    image: aznu/ticket
 #    ports:
